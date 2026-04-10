@@ -10,7 +10,15 @@ export const useAuth = () => {
 
   useEffect(() => {
     storage.initStorage()
-    setCurrentUser(storage.getCurrentUser())
+    const user = storage.getCurrentUser()
+    const token = storage.getToken()
+    
+    // Добавляем токен к объекту пользователя
+    if (user && token) {
+      user.token = token
+    }
+    
+    setCurrentUser(user)
     setLoading(false)
   }, [])
 
@@ -45,10 +53,16 @@ export const useAuth = () => {
     try {
       const result = await apiLogin(email, password)
       if (result?.token && result?.user) {
+        // Добавляем токен к объекту пользователя
+        const userWithToken = {
+          ...result.user,
+          token: result.token
+        }
+        
         storage.setToken(result.token)
-        storage.setCurrentUser(result.user)
-        setCurrentUser(result.user)
-        return { success: true, user: result.user }
+        storage.setCurrentUser(userWithToken)
+        setCurrentUser(userWithToken)
+        return { success: true, user: userWithToken }
       }
 
       const message = 'Некорректный ответ сервера'

@@ -6,6 +6,7 @@ import Profile from './components/Profile'
 import PostsCrud from './components/PostsCrud'
 import ProductsCrud from './components/ProductsCrud'
 import NewsCrud from './components/NewsCrud'
+import SupportButton from './components/SupportChat/SupportButton'
 import './styles/auth.css'
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
     if (result.success) {
       setMessage({ type: 'success', text: 'Регистрация прошла успешно!' })
       setActiveTab('login')
+      setTimeout(() => setMessage(null), 3000)
     }
   }
 
@@ -26,13 +28,17 @@ function App() {
     const result = await login(email, password)
     if (result.success) {
       setMessage({ type: 'success', text: 'Вход выполнен успешно!' })
+      setTimeout(() => setMessage(null), 3000)
     }
   }
 
   const handleLogout = () => {
     logout()
     setMessage({ type: 'info', text: 'Вы вышли из аккаунта' })
+    setTimeout(() => setMessage(null), 3000)
   }
+
+  const clearMessage = () => setMessage(null)
 
   if (loading) {
     return (
@@ -42,6 +48,7 @@ function App() {
     )
   }
 
+  // Авторизованный пользователь
   if (currentUser) {
     return (
       <>
@@ -75,10 +82,19 @@ function App() {
         {entityTab === 'products' && <ProductsCrud token={token} />}
         {entityTab === 'news' && <NewsCrud token={token} />}
 
+        {/* Кнопка чата поддержки - передаём реального пользователя */}
+        <SupportButton user={currentUser} />
+
         {message && (
-          <div style={{position: 'fixed', bottom: '20px', right: '20px'}}>
+          <div style={{position: 'fixed', bottom: '20px', right: '20px', zIndex: 1001}}>
             <div className={`auth-message ${message.type}`}>
               {message.text}
+              <button 
+                onClick={clearMessage}
+                style={{marginLeft: '10px', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer'}}
+              >
+                ✕
+              </button>
             </div>
           </div>
         )}
@@ -86,6 +102,7 @@ function App() {
     )
   }
 
+  // Неавторизованный пользователь (страница входа/регистрации)
   return (
     <div className="auth-container">
       <div className="auth-tabs">
@@ -112,12 +129,20 @@ function App() {
       {message && (
         <div className={`auth-message ${message.type}`}>
           {message.text}
+          <button 
+            onClick={clearMessage}
+            style={{marginLeft: '10px', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer'}}
+          >
+            ✕
+          </button>
         </div>
       )}
 
       <div className="auth-demo-note">
         Для работы с CRUD используйте ваш аккаунт в базе данных (JWT).
       </div>
+      
+      {/* Чат только для авторизованных - не показываем на странице входа */}
     </div>
   )
 }

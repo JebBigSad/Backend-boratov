@@ -13,5 +13,12 @@ export const endpoints = {
   news: {
     root: '/api/news',
   },
+  // Добавляем поддержку чата
+  support: {
+    tickets: '/api/support/tickets',
+    operators: '/api/support/operators',
+    messages: (ticketId) => `/api/support/tickets/${ticketId}/messages`,
+    unread: '/api/support/tickets/unread',
+    close: (ticketId) => `/api/support/tickets/${ticketId}/close`,
+  },
 }
-

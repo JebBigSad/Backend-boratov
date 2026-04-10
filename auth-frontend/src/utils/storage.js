@@ -4,7 +4,10 @@ export const STORAGE_KEYS = {
 }
 
 export const initStorage = () => {
-  // no-op: оставлено, чтобы не ломать старую логику
+  // Инициализация storage (проверяем, что localStorage доступен)
+  if (typeof localStorage === 'undefined') {
+    console.warn('localStorage не доступен')
+  }
 }
 
 export const setToken = (token) => {
