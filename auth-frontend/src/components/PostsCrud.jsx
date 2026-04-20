@@ -1,151 +1,113 @@
-import { useEffect, useState } from 'react'
-import { listPosts, createPost, updatePost, deletePost } from '../api/posts'
+import { useState, useEffect } from 'react';
+import * as postsAPI from '../api/posts';
+import './CrudStyles.css';
 
 function PostsCrud({ token }) {
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-
-  const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState({ title: '', content: '' })
-
-  const load = async () => {
-    setError(null)
-    setLoading(true)
-    try {
-      const data = await listPosts(token)
-      setItems(Array.isArray(data) ? data : [])
-    } catch (e) {
-      setError(e?.data?.error || e?.message || 'Ошибка загрузки постов')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState({ title: '', content: '' });
 
   useEffect(() => {
-    if (token) load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token])
+    loadItems();
+  }, []);
 
-  const resetForm = () => {
-    setEditingId(null)
-    setForm({ title: '', content: '' })
-  }
-
-  const onSubmit = async (e) => {
-    e.preventDefault()
-    setError(null)
-
+  const loadItems = async () => {
     try {
-      if (editingId === null) {
-        await createPost(
-          { title: form.title, content: form.content || null },
-          token
-        )
-      } else {
-        await updatePost(
-          editingId,
-          { title: form.title, content: form.content || null },
-          token
-        )
+      setLoading(true);
+      const data = await postsAPI.listPosts(token);
+      setItems(data.data || data || []);
+    } catch (error) {
+      console.error('Ошибка загрузки:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreate = async () => {
+    try {
+      await postsAPI.createPost(formData, token);
+      await loadItems();
+      setFormData({ title: '', content: '' });
+    } catch (error) {
+      console.error('Ошибка создания:', error);
+    }
+  };
+
+  const handleUpdate = async () => {
+    try {
+      await postsAPI.updatePost(editingId, formData, token);
+      await loadItems();
+      setEditingId(null);
+      setFormData({ title: '', content: '' });
+    } catch (error) {
+      console.error('Ошибка обновления:', error);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (confirm('Удалить пост?')) {
+      try {
+        await postsAPI.deletePost(id, token);
+        await loadItems();
+      } catch (error) {
+        console.error('Ошибка удаления:', error);
       }
-      await load()
-      resetForm()
-    } catch (e2) {
-      setError(e2?.data?.error || e2?.message || 'Ошибка сохранения')
     }
-  }
+  };
 
-  const onEdit = (item) => {
-    setError(null)
-    setEditingId(item.id)
-    setForm({
-      title: item.title || '',
-      content: item.content || '',
-    })
-  }
-
-  const onDelete = async (id) => {
-    setError(null)
-    const ok = window.confirm('Удалить пост?')
-    if (!ok) return
-    try {
-      await deletePost(id, token)
-      await load()
-      if (editingId === id) resetForm()
-    } catch (e) {
-      setError(e?.data?.error || e?.message || 'Ошибка удаления')
-    }
-  }
+  const startEdit = (item) => {
+    setEditingId(item.id);
+    setFormData({ title: item.title, content: item.content });
+  };
 
   return (
-    <div>
-      <h2>Посты</h2>
-      {loading && <div>Загрузка...</div>}
-      {error && <div style={{ color: '#e53e3e', marginBottom: 8 }}>{error}</div>}
-
-      <form onSubmit={onSubmit} style={{ marginBottom: 16 }}>
-        <div>
-          <label>Заголовок</label>
-          <input
-            value={form.title}
-            onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))}
-            style={{ width: '100%', marginBottom: 8 }}
-          />
-        </div>
-        <div>
-          <label>Контент</label>
-          <textarea
-            value={form.content}
-            onChange={(e) => setForm((s) => ({ ...s, content: e.target.value }))}
-            style={{ width: '100%', height: 120, marginBottom: 8 }}
-          />
-        </div>
-        <button type="submit">{editingId === null ? 'Создать' : 'Обновить'}</button>
-        {editingId !== null && (
-          <button type="button" onClick={resetForm} style={{ marginLeft: 8 }}>
-            Отмена
-          </button>
-        )}
-      </form>
-
-      <div>
-        {items.length === 0 ? (
-          <div>Пока нет постов</div>
+    <div className="crud-section">
+      <h2>📝 Управление постами</h2>
+      
+      <div className="crud-form">
+        <input
+          className="crud-input"
+          placeholder="Заголовок"
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+        />
+        <textarea
+          className="crud-textarea"
+          placeholder="Содержание"
+          value={formData.content}
+          onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+          rows="4"
+        />
+        {editingId ? (
+          <div className="form-actions">
+            <button className="btn-secondary" onClick={() => {
+              setEditingId(null);
+              setFormData({ title: '', content: '' });
+            }}>Отмена</button>
+            <button className="btn-primary" onClick={handleUpdate}>Обновить</button>
+          </div>
         ) : (
-          items.map((item) => (
-            <div
-              key={item.id}
-              style={{
-                border: '1px solid #ddd',
-                padding: 12,
-                marginBottom: 10,
-              }}
-            >
-              <div style={{ fontWeight: 700 }}>{item.title}</div>
-              <div style={{ whiteSpace: 'pre-wrap', marginTop: 6 }}>{item.content}</div>
-              <div style={{ color: '#666', marginTop: 6 }}>
-                Автор: {item.author?.username} (id: {item.author?.id})
-              </div>
-              <div style={{ marginTop: 10 }}>
-                <button type="button" onClick={() => onEdit(item)}>
-                  Изменить
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDelete(item.id)}
-                  style={{ marginLeft: 8 }}
-                >
-                  Удалить
-                </button>
-              </div>
-            </div>
-          ))
+          <button className="btn-primary" onClick={handleCreate}>Создать пост</button>
         )}
       </div>
+
+      {loading && <div className="loading-spinner-small"></div>}
+      
+      <div className="crud-grid">
+        {items.map(item => (
+          <div key={item.id} className="crud-card">
+            <h3>{item.title}</h3>
+            <p>{item.content}</p>
+            <div className="card-actions">
+              <button className="btn-edit" onClick={() => startEdit(item)}>✏️</button>
+              <button className="btn-delete" onClick={() => handleDelete(item.id)}>🗑️</button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
-  )
+  );
 }
 
-export default PostsCrud
-
+export default PostsCrud;

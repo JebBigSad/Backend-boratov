@@ -29,16 +29,47 @@ const SupportChat = ({ user, onClose }) => {
 
   const handleCreateTicket = async () => {
     if (!newTicketTitle.trim() && !newTicketDescription.trim()) return
-    await createTicket(newTicketTitle, newTicketDescription)
+    const newTicket = await createTicket(newTicketTitle, newTicketDescription)
+    console.log('📌 Создан тикет:', newTicket)
     setShowCreateForm(false)
     setNewTicketTitle('')
     setNewTicketDescription('')
   }
 
   const handleSendMessage = async () => {
-    if (!activeTicket || !messageText.trim()) return
-    await sendMessage(activeTicket.id, messageText)
-    setMessageText('')
+    console.log('🔍 handleSendMessage вызван')
+    console.log('activeTicket:', activeTicket)
+    console.log('messageText:', messageText)
+    
+    if (!activeTicket) {
+      console.error('❌ Нет активного тикета')
+      return
+    }
+    
+    if (!messageText.trim()) {
+      console.log('❌ Пустое сообщение')
+      return
+    }
+    
+    const ticketId = activeTicket.id
+    console.log('📤 ticketId для отправки:', ticketId)
+    
+    if (!ticketId) {
+      console.error('❌ ticketId отсутствует в activeTicket:', activeTicket)
+      return
+    }
+    
+    try {
+      await sendMessage(ticketId, messageText)
+      setMessageText('')
+    } catch (err) {
+      console.error('❌ Ошибка отправки:', err)
+    }
+  }
+
+  const handleSelectTicket = (ticket) => {
+    console.log('📌 Выбран тикет для загрузки:', ticket)
+    selectTicket(ticket)
   }
 
   const getStatusText = (status) => {
@@ -107,7 +138,7 @@ const SupportChat = ({ user, onClose }) => {
               <div
                 key={ticket.id || ticket._id || `ticket-${index}`}
                 className={`ticket-item ${activeTicket?.id === ticket.id ? 'active' : ''}`}
-                onClick={() => selectTicket(ticket)}
+                onClick={() => handleSelectTicket(ticket)}
               >
                 <div className="ticket-title">{ticket.title}</div>
                 <div className="ticket-status">{getStatusText(ticket.status)}</div>
@@ -127,6 +158,7 @@ const SupportChat = ({ user, onClose }) => {
                   <h4>{activeTicket.title}</h4>
                   <div className="chat-meta">
                     <span>Статус: {getStatusText(activeTicket.status)}</span>
+                    <span>ID: {activeTicket.id}</span>
                   </div>
                 </div>
                 {activeTicket.status !== 'closed' && (

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from './hooks/useAuth'
+import { ThemeProvider } from './context/ThemeContext'
+import Header from './components/Header/Header'
 import Login from './components/Login'
 import Register from './components/Register'
 import Profile from './components/Profile'
@@ -7,7 +9,7 @@ import PostsCrud from './components/PostsCrud'
 import ProductsCrud from './components/ProductsCrud'
 import NewsCrud from './components/NewsCrud'
 import SupportButton from './components/SupportChat/SupportButton'
-import './styles/auth.css'
+import './styles/global.css'
 
 function App() {
   const [activeTab, setActiveTab] = useState('login')
@@ -42,108 +44,86 @@ function App() {
 
   if (loading) {
     return (
-      <div className="auth-container" style={{textAlign: 'center'}}>
-        <h2>Загрузка...</h2>
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Загрузка...</p>
       </div>
     )
   }
 
-  // Авторизованный пользователь
-  if (currentUser) {
-    return (
-      <>
-        <Profile user={currentUser} onLogout={handleLogout} />
+  return (
+    <ThemeProvider>
+      <div className="app">
+        <Header user={currentUser} onLogout={handleLogout} />
 
-        <div style={{ marginTop: 16, marginBottom: 16 }}>
-          <button
-            type="button"
-            onClick={() => setEntityTab('posts')}
-            style={{ marginRight: 8, fontWeight: entityTab === 'posts' ? 700 : 400 }}
-          >
-            Посты
-          </button>
-          <button
-            type="button"
-            onClick={() => setEntityTab('products')}
-            style={{ marginRight: 8, fontWeight: entityTab === 'products' ? 700 : 400 }}
-          >
-            Товары
-          </button>
-          <button
-            type="button"
-            onClick={() => setEntityTab('news')}
-            style={{ fontWeight: entityTab === 'news' ? 700 : 400 }}
-          >
-            Новости
-          </button>
-        </div>
+        <main className="main-content">
+          {currentUser ? (
+            <>
+              <div className="crud-tabs">
+                <button
+                  className={`crud-tab ${entityTab === 'posts' ? 'active' : ''}`}
+                  onClick={() => setEntityTab('posts')}
+                >
+                  📝 Посты
+                </button>
+                <button
+                  className={`crud-tab ${entityTab === 'products' ? 'active' : ''}`}
+                  onClick={() => setEntityTab('products')}
+                >
+                  🛍️ Товары
+                </button>
+                <button
+                  className={`crud-tab ${entityTab === 'news' ? 'active' : ''}`}
+                  onClick={() => setEntityTab('news')}
+                >
+                  📰 Новости
+                </button>
+              </div>
 
-        {entityTab === 'posts' && <PostsCrud token={token} />}
-        {entityTab === 'products' && <ProductsCrud token={token} />}
-        {entityTab === 'news' && <NewsCrud token={token} />}
+              <div className="crud-container">
+                {entityTab === 'posts' && <PostsCrud token={token} />}
+                {entityTab === 'products' && <ProductsCrud token={token} />}
+                {entityTab === 'news' && <NewsCrud token={token} />}
+              </div>
 
-        {/* Кнопка чата поддержки - передаём реального пользователя */}
-        <SupportButton user={currentUser} />
+              <SupportButton user={currentUser} />
+            </>
+          ) : (
+            <div className="auth-wrapper">
+              <div className="auth-card">
+                <div className="auth-tabs">
+                  <button
+                    className={`auth-tab ${activeTab === 'login' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('login')}
+                  >
+                    Вход
+                  </button>
+                  <button
+                    className={`auth-tab ${activeTab === 'register' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('register')}
+                  >
+                    Регистрация
+                  </button>
+                </div>
+
+                {activeTab === 'login' ? (
+                  <Login onLogin={handleLogin} error={error} />
+                ) : (
+                  <Register onRegister={handleRegister} error={error} />
+                )}
+              </div>
+            </div>
+          )}
+        </main>
 
         {message && (
-          <div style={{position: 'fixed', bottom: '20px', right: '20px', zIndex: 1001}}>
-            <div className={`auth-message ${message.type}`}>
-              {message.text}
-              <button 
-                onClick={clearMessage}
-                style={{marginLeft: '10px', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer'}}
-              >
-                ✕
-              </button>
-            </div>
+          <div className={`toast-message ${message.type}`}>
+            {message.text}
+            <button onClick={clearMessage} className="toast-close">✕</button>
           </div>
         )}
-      </>
-    )
-  }
-
-  // Неавторизованный пользователь (страница входа/регистрации)
-  return (
-    <div className="auth-container">
-      <div className="auth-tabs">
-        <div 
-          className={`auth-tab ${activeTab === 'login' ? 'active' : ''}`}
-          onClick={() => setActiveTab('login')}
-        >
-          Вход
-        </div>
-        <div 
-          className={`auth-tab ${activeTab === 'register' ? 'active' : ''}`}
-          onClick={() => setActiveTab('register')}
-        >
-          Регистрация
-        </div>
       </div>
-
-      {activeTab === 'login' ? (
-        <Login onLogin={handleLogin} error={error} />
-      ) : (
-        <Register onRegister={handleRegister} error={error} />
-      )}
-
-      {message && (
-        <div className={`auth-message ${message.type}`}>
-          {message.text}
-          <button 
-            onClick={clearMessage}
-            style={{marginLeft: '10px', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer'}}
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-      <div className="auth-demo-note">
-        Для работы с CRUD используйте ваш аккаунт в базе данных (JWT).
-      </div>
-      
-      {/* Чат только для авторизованных - не показываем на странице входа */}
-    </div>
+    </ThemeProvider>
   )
 }
 

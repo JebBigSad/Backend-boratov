@@ -1,172 +1,141 @@
-import { useEffect, useState } from 'react'
-import {
-  listProducts,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-} from '../api/products'
+import { useState, useEffect } from 'react';
+import * as productsAPI from '../api/products';
+import './CrudStyles.css';
 
 function ProductsCrud({ token }) {
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-
-  const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState({ title: '', description: '', price: '' })
-
-  const load = async () => {
-    setError(null)
-    setLoading(true)
-    try {
-      const data = await listProducts(token)
-      setItems(Array.isArray(data) ? data : [])
-    } catch (e) {
-      setError(e?.data?.error || e?.message || 'Ошибка загрузки товаров')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState({ 
+    title: '', 
+    description: '', 
+    price: '' 
+  });
 
   useEffect(() => {
-    if (token) load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token])
+    loadItems();
+  }, []);
 
-  const resetForm = () => {
-    setEditingId(null)
-    setForm({ title: '', description: '', price: '' })
-  }
-
-  const onSubmit = async (e) => {
-    e.preventDefault()
-    setError(null)
-
-    const priceValue =
-      form.price === '' || form.price === null ? null : Number(form.price)
-
+  const loadItems = async () => {
     try {
-      if (editingId === null) {
-        await createProduct(
-          {
-            title: form.title,
-            description: form.description || null,
-            price: Number.isFinite(priceValue) ? priceValue : null,
-          },
-          token
-        )
-      } else {
-        await updateProduct(
-          editingId,
-          {
-            title: form.title,
-            description: form.description || null,
-            price: Number.isFinite(priceValue) ? priceValue : null,
-          },
-          token
-        )
+      setLoading(true);
+      const data = await productsAPI.listProducts(token);
+      setItems(data.data || data || []);
+    } catch (error) {
+      console.error('Ошибка загрузки:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!formData.title) {
+      alert('Введите название товара');
+      return;
+    }
+    try {
+      await productsAPI.createProduct(formData, token);
+      await loadItems();
+      setFormData({ title: '', description: '', price: '' });
+    } catch (error) {
+      console.error('Ошибка создания:', error);
+    }
+  };
+
+  const handleUpdate = async () => {
+    try {
+      await productsAPI.updateProduct(editingId, formData, token);
+      await loadItems();
+      setEditingId(null);
+      setFormData({ title: '', description: '', price: '' });
+    } catch (error) {
+      console.error('Ошибка обновления:', error);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (confirm('Удалить товар?')) {
+      try {
+        await productsAPI.deleteProduct(id, token);
+        await loadItems();
+      } catch (error) {
+        console.error('Ошибка удаления:', error);
       }
-      await load()
-      resetForm()
-    } catch (e2) {
-      setError(e2?.data?.error || e2?.message || 'Ошибка сохранения')
     }
-  }
+  };
 
-  const onEdit = (item) => {
-    setError(null)
-    setEditingId(item.id)
-    setForm({
-      title: item.title || '',
-      description: item.description || '',
-      price: item.price === null || item.price === undefined ? '' : String(item.price),
-    })
-  }
+  const startEdit = (item) => {
+    setEditingId(item.id);
+    setFormData({ 
+      title: item.title, 
+      description: item.description || '', 
+      price: item.price || '' 
+    });
+  };
 
-  const onDelete = async (id) => {
-    setError(null)
-    const ok = window.confirm('Удалить товар?')
-    if (!ok) return
-    try {
-      await deleteProduct(id, token)
-      await load()
-      if (editingId === id) resetForm()
-    } catch (e) {
-      setError(e?.data?.error || e?.message || 'Ошибка удаления')
-    }
-  }
+  const formatPrice = (price) => {
+    if (!price) return 'Цена не указана';
+    return `${price} ₽`;
+  };
 
   return (
-    <div>
-      <h2>Товары</h2>
-      {loading && <div>Загрузка...</div>}
-      {error && <div style={{ color: '#e53e3e', marginBottom: 8 }}>{error}</div>}
-
-      <form onSubmit={onSubmit} style={{ marginBottom: 16 }}>
-        <div style={{ marginBottom: 8 }}>
-          <label>Название</label>
-          <input
-            value={form.title}
-            onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))}
-            style={{ width: '100%' }}
-          />
-        </div>
-
-        <div style={{ marginBottom: 8 }}>
-          <label>Описание</label>
-          <textarea
-            value={form.description}
-            onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
-            style={{ width: '100%', height: 90 }}
-          />
-        </div>
-
-        <div style={{ marginBottom: 8 }}>
-          <label>Цена (int)</label>
-          <input
-            value={form.price}
-            onChange={(e) => setForm((s) => ({ ...s, price: e.target.value }))}
-            placeholder="например, 1999"
-            style={{ width: '100%' }}
-          />
-        </div>
-
-        <button type="submit">{editingId === null ? 'Создать' : 'Обновить'}</button>
-        {editingId !== null && (
-          <button type="button" onClick={resetForm} style={{ marginLeft: 8 }}>
-            Отмена
-          </button>
-        )}
-      </form>
-
-      <div>
-        {items.length === 0 ? (
-          <div>Пока нет товаров</div>
+    <div className="crud-section">
+      <h2>🛍️ Управление товарами</h2>
+      
+      <div className="crud-form">
+        <input
+          className="crud-input"
+          placeholder="Название товара *"
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+        />
+        <textarea
+          className="crud-textarea"
+          placeholder="Описание товара"
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          rows="3"
+        />
+        <input
+          className="crud-input"
+          placeholder="Цена (в рублях)"
+          type="number"
+          value={formData.price}
+          onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+        />
+        {editingId ? (
+          <div className="form-actions">
+            <button className="btn-secondary" onClick={() => {
+              setEditingId(null);
+              setFormData({ title: '', description: '', price: '' });
+            }}>Отмена</button>
+            <button className="btn-primary" onClick={handleUpdate}>Обновить товар</button>
+          </div>
         ) : (
-          items.map((item) => (
-            <div
-              key={item.id}
-              style={{ border: '1px solid #ddd', padding: 12, marginBottom: 10 }}
-            >
-              <div style={{ fontWeight: 700 }}>{item.title}</div>
-              {item.description && (
-                <div style={{ marginTop: 6, whiteSpace: 'pre-wrap' }}>{item.description}</div>
-              )}
-              <div style={{ color: '#666', marginTop: 6 }}>
-                Цена: {item.price === null ? '-' : item.price}
+          <button className="btn-primary" onClick={handleCreate}>➕ Добавить товар</button>
+        )}
+      </div>
+
+      {loading && <div className="loading-spinner-small"></div>}
+      
+      <div className="crud-grid">
+        {items.length === 0 && !loading ? (
+          <div className="empty-state">Товаров пока нет</div>
+        ) : (
+          items.map(item => (
+            <div key={item.id} className="crud-card">
+              <h3>{item.title}</h3>
+              {item.description && <p>{item.description}</p>}
+              <div className="product-price">{formatPrice(item.price)}</div>
+              <div className="item-date">
+                {new Date(item.createAt || item.createdAt).toLocaleDateString()}
               </div>
-              <div style={{ color: '#666', marginTop: 6 }}>
-                Автор: {item.author?.username} (id: {item.author?.id})
-              </div>
-              <div style={{ marginTop: 10 }}>
-                <button type="button" onClick={() => onEdit(item)}>
-                  Изменить
+              <div className="card-actions">
+                <button className="btn-edit" onClick={() => startEdit(item)}>
+                  ✏️ Редактировать
                 </button>
-                <button
-                  type="button"
-                  onClick={() => onDelete(item.id)}
-                  style={{ marginLeft: 8 }}
-                >
-                  Удалить
+                <button className="btn-delete" onClick={() => handleDelete(item.id)}>
+                  🗑️ Удалить
                 </button>
               </div>
             </div>
@@ -174,8 +143,7 @@ function ProductsCrud({ token }) {
         )}
       </div>
     </div>
-  )
+  );
 }
 
-export default ProductsCrud
-
+export default ProductsCrud;

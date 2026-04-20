@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 function parseBodySafely(text) {
   if (!text) return null;
@@ -16,8 +16,13 @@ export async function apiFetch(path, { method = 'GET', body, token } = {}) {
     headers['Content-Type'] = 'application/json';
   }
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  // Добавляем токен (из параметра или из localStorage)
+  const authToken = token || localStorage.getItem('token');
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+    console.log('✅ Токен добавлен в запрос к:', path); // Для отладки
+  } else {
+    console.warn('⚠️ Нет токена для запроса к:', path);
   }
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
@@ -36,9 +41,6 @@ export async function apiFetch(path, { method = 'GET', body, token } = {}) {
     throw err;
   }
 
-  // 204 No Content
   if (res.status === 204) return null;
-
   return data;
 }
-

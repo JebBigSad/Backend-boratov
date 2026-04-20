@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-// Расширяем интерфейс Request, чтобы добавить user
 declare global {
   namespace Express {
     interface Request {
@@ -22,17 +21,27 @@ interface JwtPayload {
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; 
+  const token = authHeader && authHeader.split(' ')[1];
 
+  console.log('🔐 Проверка токена для:', req.method, req.path);
+  console.log('📨 authHeader:', authHeader);
+  
   if (!token) {
+    console.log('❌ Токен не предоставлен');
     return res.status(401).json({ error: 'Токен не предоставлен' });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as JwtPayload;
+    // Используем секрет из .env
+    const secret = process.env.JWT_SECRET || 'my_secret_key_123';
+    console.log('🔑 Используемый секрет:', secret);
+    
+    const decoded = jwt.verify(token, secret) as JwtPayload;
     req.user = { id: decoded.id, email: decoded.email, username: decoded.username };
+    console.log('✅ Токен валиден для пользователя:', decoded.username || decoded.email);
     next();
-  } catch (error) {
+  } catch (error: any) {
+    console.log('❌ Недействительный токен:', error.message);
     return res.status(403).json({ error: 'Недействительный токен' });
   }
 };
