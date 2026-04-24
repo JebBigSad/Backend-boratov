@@ -1,63 +1,36 @@
-import { endpoints } from './endpoints';
 import { apiFetch } from './http';
 
-// Вспомогательные функции для формирования URL
-export function ticketsUrl(id) {
-  return id === undefined ? endpoints.support.tickets : `${endpoints.support.tickets}/${id}`;
-}
+export const getTickets = (token) => {
+  return apiFetch('/api/support/tickets', { token });
+};
 
-export function messagesUrl(ticketId, messageId) {
-  const base = endpoints.support.messages(ticketId);
-  return messageId === undefined ? base : `${base}/${messageId}`;
-}
-
-// Получить все тикеты пользователя
-export async function listTickets(token) {
-  return apiFetch(ticketsUrl(), { token });
-}
-
-// Получить конкретный тикет
-export async function getTicket(id, token) {
-  return apiFetch(ticketsUrl(id), { token });
-}
-
-// Создать новый тикет
-export async function createTicket({ title, description, clientName }, token) {
-  return apiFetch(ticketsUrl(), {
+export const createTicket = (data, token) => {
+  return apiFetch('/api/support/tickets', {
     method: 'POST',
-    token,
-    body: { title, description, clientName },
+    body: data,
+    token
   });
-}
+};
 
-// Получить сообщения тикета
-export async function listMessages(ticketId, token) {
-  return apiFetch(messagesUrl(ticketId), { token });
-}
+export const getMessages = (ticketId, token) => {
+  return apiFetch(`/api/support/tickets/${ticketId}/messages`, { token });
+};
 
-// Отправить сообщение
-export async function sendMessage(ticketId, { text }, token) {
-  return apiFetch(messagesUrl(ticketId), {
+export const sendMessage = (ticketId, text, token) => {
+  return apiFetch(`/api/support/tickets/${ticketId}/messages`, {
     method: 'POST',
-    token,
     body: { text },
+    token
   });
-}
+};
 
-// Закрыть тикет
-export async function closeTicket(ticketId, token) {
-  return apiFetch(endpoints.support.close(ticketId), {
+export const closeTicket = (ticketId, token) => {
+  return apiFetch(`/api/support/tickets/${ticketId}/close`, {
     method: 'PATCH',
-    token,
+    token
   });
-}
+};
 
-// Получить список операторов
-export async function listOperators(token) {
-  return apiFetch(endpoints.support.operators, { token });
-}
-
-// Получить количество непрочитанных сообщений
-export async function getUnreadCount(token) {
-  return apiFetch(endpoints.support.unread, { token });
-}
+export const getOperators = (token) => {
+  return apiFetch('/api/support/operators', { token });
+};

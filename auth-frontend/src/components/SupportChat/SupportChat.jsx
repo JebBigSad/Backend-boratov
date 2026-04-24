@@ -1,218 +1,106 @@
-import { useState, useEffect, useRef } from 'react'
-import { useSupportChat } from '../../hooks/useSupportChat'
-import './SupportChat.css'
+import { useState, useEffect, useRef } from 'react';
+import { useSupportChat } from '../../hooks/useSupportChat';
+import './SupportChat.css';
 
 const SupportChat = ({ user, onClose }) => {
-  const [messageText, setMessageText] = useState('')
-  const [showCreateForm, setShowCreateForm] = useState(false)
-  const [newTicketTitle, setNewTicketTitle] = useState('')
-  const [newTicketDescription, setNewTicketDescription] = useState('')
+  const [messageText, setMessageText] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDesc, setNewDesc] = useState('');
   
-  const {
-    tickets,
-    activeTicket,
-    messages,
-    isConnected,
-    error,
-    loading,
-    createTicket,
-    sendMessage,
-    closeTicket,
-    selectTicket,
-  } = useSupportChat(user)
-
-  const messagesEndRef = useRef(null)
+  const { tickets, activeTicket, messages, loading, error, createTicket, sendMessage, closeTicket, selectTicket } = useSupportChat(user);
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, activeTicket])
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, activeTicket]);
 
-  const handleCreateTicket = async () => {
-    if (!newTicketTitle.trim() && !newTicketDescription.trim()) return
-    const newTicket = await createTicket(newTicketTitle, newTicketDescription)
-    console.log('📌 Создан тикет:', newTicket)
-    setShowCreateForm(false)
-    setNewTicketTitle('')
-    setNewTicketDescription('')
-  }
+  const handleCreate = async () => {
+    if (!newTitle.trim()) return;
+    await createTicket(newTitle, newDesc);
+    setShowForm(false);
+    setNewTitle('');
+    setNewDesc('');
+  };
 
-  const handleSendMessage = async () => {
-    console.log('🔍 handleSendMessage вызван')
-    console.log('activeTicket:', activeTicket)
-    console.log('messageText:', messageText)
-    
-    if (!activeTicket) {
-      console.error('❌ Нет активного тикета')
-      return
-    }
-    
-    if (!messageText.trim()) {
-      console.log('❌ Пустое сообщение')
-      return
-    }
-    
-    const ticketId = activeTicket.id
-    console.log('📤 ticketId для отправки:', ticketId)
-    
-    if (!ticketId) {
-      console.error('❌ ticketId отсутствует в activeTicket:', activeTicket)
-      return
-    }
-    
-    try {
-      await sendMessage(ticketId, messageText)
-      setMessageText('')
-    } catch (err) {
-      console.error('❌ Ошибка отправки:', err)
-    }
-  }
+  const handleSend = async () => {
+    if (!activeTicket || !messageText.trim()) return;
+    await sendMessage(activeTicket.id, messageText);
+    setMessageText('');
+  };
 
-  const handleSelectTicket = (ticket) => {
-    console.log('📌 Выбран тикет для загрузки:', ticket)
-    selectTicket(ticket)
-  }
-
-  const getStatusText = (status) => {
-    const statusMap = {
-      open: '🟡 Открыт',
-      in_progress: '🔵 В обработке',
-      resolved: '🟢 Решён',
-      closed: '⚫ Закрыт',
-    }
-    return statusMap[status] || status
-  }
-
-  const currentMessages = activeTicket && messages[activeTicket.id] ? messages[activeTicket.id] : []
+  const currentMessages = activeTicket ? (messages[activeTicket.id] || []) : [];
+  const statusMap = { open: 'Открыт', closed: 'Закрыт' };
 
   return (
     <div className="support-chat">
-      <div className="support-chat-header">
-        <div className="header-title">
-          <h3>🆘 Поддержка</h3>
-          {isConnected && <span className="online-status">● Онлайн</span>}
-        </div>
-        <button onClick={onClose} className="close-button">✕</button>
+      <div className="support-header">
+        <h3>Поддержка</h3>
+        <button onClick={onClose} className="close-btn">×</button>
       </div>
-
-      {error && <div className="support-chat-error">{error}</div>}
-
-      <div className="support-chat-body">
-        <div className="support-sidebar">
-          <div className="sidebar-header">
+      
+      {error && <div className="error-msg">{error}</div>}
+      
+      <div className="support-body">
+        <div className="tickets-sidebar">
+          <div className="tickets-header">
             <h4>Мои обращения</h4>
-            <button 
-              className="create-ticket-btn"
-              onClick={() => setShowCreateForm(!showCreateForm)}
-            >
-              +
-            </button>
+            <button onClick={() => setShowForm(!showForm)} className="new-ticket-btn">+</button>
           </div>
-
-          {showCreateForm && (
-            <div className="create-ticket-form">
-              <input
-                type="text"
-                placeholder="Тема обращения"
-                value={newTicketTitle}
-                onChange={(e) => setNewTicketTitle(e.target.value)}
-              />
-              <textarea
-                placeholder="Опишите проблему..."
-                value={newTicketDescription}
-                onChange={(e) => setNewTicketDescription(e.target.value)}
-                rows="3"
-              />
-              <div className="form-buttons">
-                <button onClick={() => setShowCreateForm(false)}>Отмена</button>
-                <button onClick={handleCreateTicket}>Создать</button>
-              </div>
+          
+          {showForm && (
+            <div className="new-ticket-form">
+              <input type="text" placeholder="Тема" value={newTitle} onChange={e => setNewTitle(e.target.value)} />
+              <textarea placeholder="Описание" value={newDesc} onChange={e => setNewDesc(e.target.value)} rows={2} />
+              <button onClick={handleCreate}>Создать</button>
             </div>
           )}
-
+          
           <div className="tickets-list">
-            {loading && <div className="loading">Загрузка...</div>}
-            {!loading && (!Array.isArray(tickets) || tickets.length === 0) && (
-              <div className="empty-state">Нет обращений</div>
-            )}
-            {Array.isArray(tickets) && tickets.map((ticket, index) => (
-              <div
-                key={ticket.id || ticket._id || `ticket-${index}`}
-                className={`ticket-item ${activeTicket?.id === ticket.id ? 'active' : ''}`}
-                onClick={() => handleSelectTicket(ticket)}
-              >
-                <div className="ticket-title">{ticket.title}</div>
-                <div className="ticket-status">{getStatusText(ticket.status)}</div>
-                <div className="ticket-date">
-                  {new Date(ticket.createdAt).toLocaleDateString()}
-                </div>
+            {loading && <div className="empty-text">Загрузка...</div>}
+            {!loading && tickets.length === 0 && <div className="empty-text">Нет обращений</div>}
+            {tickets.map(t => (
+              <div key={t.id} className={`ticket-item ${activeTicket?.id === t.id ? 'active' : ''}`} onClick={() => selectTicket(t)}>
+                <div className="ticket-title">{t.title}</div>
+                <div className="ticket-status">{statusMap[t.status]}</div>
+                <div className="ticket-date">{new Date(t.createdAt).toLocaleDateString()}</div>
               </div>
             ))}
           </div>
         </div>
-
-        <div className="support-chat-area">
+        
+        <div className="chat-area">
           {activeTicket ? (
             <>
-              <div className="chat-header">
-                <div>
-                  <h4>{activeTicket.title}</h4>
-                  <div className="chat-meta">
-                    <span>Статус: {getStatusText(activeTicket.status)}</span>
-                    <span>ID: {activeTicket.id}</span>
-                  </div>
-                </div>
+              <div className="chat-info">
+                <span><strong>{activeTicket.title}</strong></span>
                 {activeTicket.status !== 'closed' && (
-                  <button 
-                    className="close-ticket-btn"
-                    onClick={() => closeTicket(activeTicket.id)}
-                  >
-                    Закрыть обращение
-                  </button>
+                  <button onClick={() => closeTicket(activeTicket.id)} className="close-ticket-btn">Закрыть</button>
                 )}
               </div>
-
-              <div className="chat-messages">
-                {currentMessages.length === 0 ? (
-                  <div className="empty-state">Начните диалог...</div>
-                ) : (
-                  currentMessages.map((msg, index) => (
-                    <div
-                      key={msg.id || msg._id || `msg-${index}`}
-                      className={`message ${msg.authorRole === 'client' ? 'client' : 'operator'}`}
-                    >
-                      <div className="message-author">{msg.authorName}</div>
-                      <div className="message-text">{msg.text}</div>
-                      <div className="message-time">
-                        {new Date(msg.createdAt).toLocaleTimeString()}
-                      </div>
-                    </div>
-                  ))
-                )}
+              <div className="messages-list">
+                {currentMessages.length === 0 && <div className="empty-text">Нет сообщений</div>}
+                {currentMessages.map(m => (
+                  <div key={m.id} className={`message ${m.authorRole === 'client' ? 'client' : 'operator'}`}>
+                    <strong>{m.authorName}</strong>
+                    <p>{m.text}</p>
+                    <small>{new Date(m.createdAt).toLocaleTimeString()}</small>
+                  </div>
+                ))}
                 <div ref={messagesEndRef} />
               </div>
-
-              {activeTicket.status !== 'closed' && (
-                <div className="chat-input-area">
-                  <input
-                    type="text"
-                    placeholder="Введите сообщение..."
-                    value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                  />
-                  <button onClick={handleSendMessage}>Отправить</button>
-                </div>
-              )}
+              <div className="input-area">
+                <input type="text" value={messageText} onChange={e => setMessageText(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} placeholder="Введите сообщение..." />
+                <button onClick={handleSend}>Отправить</button>
+              </div>
             </>
           ) : (
-            <div className="empty-state">
-              Выберите обращение из списка
-            </div>
+            <div className="empty-chat">Выберите обращение</div>
           )}
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default SupportChat
+export default SupportChat;

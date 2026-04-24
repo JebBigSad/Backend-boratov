@@ -1,46 +1,54 @@
-import { Router } from 'express'
+import { Router } from 'express';
 
-const router = Router()
+const router = Router();
 
-// Хранилище в памяти (временно)
-let tickets: any[] = []
-let messages: any[] = []
+// Хранилище в памяти
+let tickets: any[] = [];
+let messages: any[] = [];
 
-// Получить все тикеты
-router.get('/tickets', async (req, res) => {
-  res.json(tickets)
-})
+router.get('/tickets', (req, res) => {
+  const userRole = (req as any).user?.role;
+  const userId = (req as any).user?.id;
+  
+  let result;
+  if (userRole === 'operator') {
+    result = tickets;
+  } else {
+    result = tickets.filter(t => t.clientId === userId);
+  }
+  res.json(result);
+});
 
-// Создать новый тикет
-router.post('/tickets', async (req, res) => {
-  const { title, description, clientName } = req.body
+router.post('/tickets', (req, res) => {
+  const { title, description } = req.body;
+  const userId = (req as any).user?.id;
+  const userName = (req as any).user?.username;
+  
   const newTicket = {
     id: Date.now().toString(),
-    title: title || 'Новое обращение',
-    description: description || '',
-    clientName: clientName || 'Пользователь',
+    title,
+    description,
+    clientId: userId,
+    clientName: userName,
     status: 'open',
     createdAt: new Date().toISOString()
-  }
-  tickets.unshift(newTicket)
-  console.log('✅ Создан тикет:', newTicket.id, newTicket.title)
-  res.json(newTicket)
-})
+  };
+  tickets.unshift(newTicket);
+  res.json(newTicket);
+});
 
-// Получить сообщения тикета
-router.get('/tickets/:ticketId/messages', async (req, res) => {
-  const { ticketId } = req.params
-  const ticketMessages = messages.filter(m => m.ticketId === ticketId)
-  res.json(ticketMessages)
-})
+router.get('/tickets/:ticketId/messages', (req, res) => {
+  const { ticketId } = req.params;
+  const ticketMessages = messages.filter(m => m.ticketId === ticketId);
+  res.json(ticketMessages);
+});
 
-// Отправить сообщение
-router.post('/tickets/:ticketId/messages', async (req, res) => {
-  const { ticketId } = req.params
-  const { text } = req.body
-  const userId = (req as any).user?.id || 1
-  const userName = (req as any).user?.username || (req as any).user?.email || 'Пользователь'
-  const userRole = (req as any).user?.role || 'client'
+router.post('/tickets/:ticketId/messages', (req, res) => {
+  const { ticketId } = req.params;
+  const { text } = req.body;
+  const userId = (req as any).user?.id;
+  const userName = (req as any).user?.username;
+  const userRole = (req as any).user?.role || 'client';
   
   const newMessage = {
     id: Date.now().toString(),
@@ -50,25 +58,20 @@ router.post('/tickets/:ticketId/messages', async (req, res) => {
     authorName: userName,
     authorRole: userRole,
     createdAt: new Date().toISOString()
-  }
-  messages.push(newMessage)
-  console.log(`💬 Сообщение в тикет ${ticketId} от ${userName}: ${text}`)
-  res.json(newMessage)
-})
+  };
+  messages.push(newMessage);
+  res.json(newMessage);
+});
 
-// Закрыть тикет
-router.patch('/tickets/:ticketId/close', async (req, res) => {
-  const { ticketId } = req.params
-  const ticket = tickets.find(t => t.id === ticketId)
-  if (ticket) {
-    ticket.status = 'closed'
-  }
-  res.json(ticket)
-})
+router.patch('/tickets/:ticketId/close', (req, res) => {
+  const { ticketId } = req.params;
+  const ticket = tickets.find(t => t.id === ticketId);
+  if (ticket) ticket.status = 'closed';
+  res.json(ticket);
+});
 
-// Получить операторов
-router.get('/operators', async (req, res) => {
-  res.json([])
-})
+router.get('/operators', (req, res) => {
+  res.json([]);
+});
 
-export default router
+export default router;
