@@ -31,6 +31,8 @@ const SupportChat = ({ user, onClose }) => {
 
   const currentMessages = activeTicket ? (messages[activeTicket.id] || []) : [];
   const statusMap = { open: 'Открыт', closed: 'Закрыт' };
+  const normalizeRole = (role) => String(role || '').trim().toLowerCase();
+  const isSupportStaff = ['operator', 'manager', 'admin'].includes(normalizeRole(user?.role));
 
   return (
     <div className="support-chat">
@@ -44,11 +46,13 @@ const SupportChat = ({ user, onClose }) => {
       <div className="support-body">
         <div className="tickets-sidebar">
           <div className="tickets-header">
-            <h4>Мои обращения</h4>
-            <button onClick={() => setShowForm(!showForm)} className="new-ticket-btn">+</button>
+            <h4>{isSupportStaff ? 'Обращения клиентов' : 'Мои обращения'}</h4>
+            {!isSupportStaff && (
+              <button onClick={() => setShowForm(!showForm)} className="new-ticket-btn">+</button>
+            )}
           </div>
           
-          {showForm && (
+          {!isSupportStaff && showForm && (
             <div className="new-ticket-form">
               <input type="text" placeholder="Тема" value={newTitle} onChange={e => setNewTitle(e.target.value)} />
               <textarea placeholder="Описание" value={newDesc} onChange={e => setNewDesc(e.target.value)} rows={2} />
@@ -80,13 +84,16 @@ const SupportChat = ({ user, onClose }) => {
               </div>
               <div className="messages-list">
                 {currentMessages.length === 0 && <div className="empty-text">Нет сообщений</div>}
-                {currentMessages.map(m => (
-                  <div key={m.id} className={`message ${m.authorRole === 'client' ? 'client' : 'operator'}`}>
-                    <strong>{m.authorName}</strong>
-                    <p>{m.text}</p>
-                    <small>{new Date(m.createdAt).toLocaleTimeString()}</small>
-                  </div>
-                ))}
+                {currentMessages.map(m => {
+                  const isMyMessage = m.authorId === user?.id;
+                  return (
+                    <div key={m.id} className={`message ${isMyMessage ? 'my' : 'other'}`}>
+                      <strong>{m.authorName || m.authorId || '???'}</strong>
+                      <p>{m.text}</p>
+                      <small>{new Date(m.createdAt).toLocaleTimeString()}</small>
+                    </div>
+                  );
+                })}
                 <div ref={messagesEndRef} />
               </div>
               <div className="input-area">

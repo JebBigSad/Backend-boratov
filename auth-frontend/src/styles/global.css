@@ -186,3 +186,31 @@
     left: 1rem;
   }
 }
+/* Стили для сообщений чата */
+.message {
+  max-width: 70%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.message.my {
+  align-self: flex-end;
+  background: #2563eb;
+  color: white;
+}
+
+.message.other {
+  align-self: flex-start;
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.dark .message.my {
+  background: #3b82f6;
+}
+
+.dark .message.other {
+  background: #374151;
+  color: #e0e0e0;
+}

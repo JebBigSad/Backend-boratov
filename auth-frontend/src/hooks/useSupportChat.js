@@ -13,6 +13,31 @@ export const useSupportChat = (user) => {
   const socketRef = useRef(null);
   const activeTicketRef = useRef(activeTicket);
 
+  const normalizeRole = (role) => String(role || '').trim().toLowerCase();
+  const isSupportStaff = ['operator', 'manager', 'admin'].includes(normalizeRole(user?.role));
+
+  const appendMessageUnique = (ticketId, message) => {
+    setMessages(prev => {
+      const ticketMessages = prev[ticketId] || [];
+      const exists = ticketMessages.some((m) => m.id === message.id);
+      if (exists) return prev;
+      return {
+        ...prev,
+        [ticketId]: [...ticketMessages, message]
+      };
+    });
+  };
+
+  const upsertTicket = (ticket) => {
+    setTickets((prev) => {
+      const idx = prev.findIndex((t) => t.id === ticket.id);
+      if (idx === -1) return [ticket, ...prev];
+      const next = [...prev];
+      next[idx] = { ...next[idx], ...ticket };
+      return next;
+    });
+  };
+
   useEffect(() => {
     activeTicketRef.current = activeTicket;
   }, [activeTicket]);
@@ -33,28 +58,42 @@ export const useSupportChat = (user) => {
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log('��� WebSocket подключён');
+      console.log('��� WebSocket подключён');
       setIsConnected(true);
       socket.emit('support:register', {
-        userId: user.id,
-        role: user.role || 'client',
-        name: user.username
+        token: user.token
       });
     });
 
     socket.on('support:newMessage', (message) => {
-      // Показываем сообщения только от ДРУГИХ пользователей
-      if (message.authorId !== user.id) {
-        console.log('��� Сообщение от другого пользователя:', message);
-        setMessages(prev => ({
-          ...prev,
-          [message.ticketId]: [...(prev[message.ticketId] || []), message]
-        }));
+      appendMessageUnique(message.ticketId, message);
+    });
+
+    socket.on('support:ticketCreated', async (ticket) => {
+      if (!ticket) return;
+      if (!isSupportStaff && ticket.clientId !== user?.id) return;
+      upsertTicket(ticket);
+      if (isSupportStaff && !activeTicketRef.current) {
+        setActiveTicket(ticket);
+        await loadMessages(ticket.id);
       }
     });
 
+    socket.on('support:ticketUpdated', (ticket) => {
+      if (!ticket) return;
+      if (!isSupportStaff && ticket.clientId !== user?.id) return;
+      upsertTicket(ticket);
+      if (activeTicketRef.current?.id === ticket.id) {
+        setActiveTicket((prev) => (prev ? { ...prev, ...ticket } : prev));
+      }
+    });
+
+    socket.on('support:error', (payload) => {
+      setError(payload?.error || 'Ошибка WebSocket');
+    });
+
     socket.on('disconnect', () => {
-      console.log('��� WebSocket отключён');
+      console.log('��� WebSocket отключён');
       setIsConnected(false);
     });
   };
@@ -88,9 +127,13 @@ export const useSupportChat = (user) => {
   };
 
   const createTicket = async (title, description) => {
+    if (isSupportStaff) {
+      setError('Оператор не может создавать обращения');
+      return null;
+    }
     try {
       const newTicket = await supportAPI.createTicket({ title, description, clientName: user.username }, user.token);
-      setTickets(prev => [newTicket, ...prev]);
+      upsertTicket(newTicket);
       setActiveTicket(newTicket);
       if (socketRef.current) {
         socketRef.current.emit('support:joinTicket', newTicket.id);
@@ -105,25 +148,8 @@ export const useSupportChat = (user) => {
   const sendMessage = async (ticketId, text) => {
     if (!text.trim()) return;
     try {
-      // Отправляем через API
       const newMessage = await supportAPI.sendMessage(ticketId, text, user.token);
-      
-      // Добавляем своё сообщение сразу
-      setMessages(prev => ({
-        ...prev,
-        [ticketId]: [...(prev[ticketId] || []), newMessage]
-      }));
-      
-      // Уведомляем других через WebSocket
-      if (socketRef.current && isConnected) {
-        socketRef.current.emit('support:sendMessage', {
-          ticketId: ticketId,
-          text: text,
-          userId: user.id,
-          userName: user.username,
-          userRole: user.role || 'client'
-        });
-      }
+      appendMessageUnique(ticketId, newMessage);
     } catch (err) {
       setError('Ошибка отправки сообщения');
       throw err;

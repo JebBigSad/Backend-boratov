@@ -1,0 +1,26 @@
+
+/* Мои сообщения (справа) */
+.message.my {
+  background: #2563eb;
+  color: white;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+/* Сообщения других (слева) */
+.message.other {
+  background: #f3f4f6;
+  color: #1f2937;
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+
+/* Тёмная тема */
+.dark .message.my {
+  background: #3b82f6;
+}
+
+.dark .message.other {
+  background: #374151;
+  color: #e0e0e0;
+}

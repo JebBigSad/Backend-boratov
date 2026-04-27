@@ -13,9 +13,9 @@ export const useAuth = () => {
     const user = storage.getCurrentUser()
     const token = storage.getToken()
     
-    // Добавляем токен к объекту пользователя
     if (user && token) {
       user.token = token
+      if (!user.role) user.role = 'client'
     }
     
     setCurrentUser(user)
@@ -32,7 +32,13 @@ export const useAuth = () => {
     }
 
     try {
-      await apiRegister(userData.username, userData.email, userData.password)
+      // Добавляем confirmPassword в вызов
+      await apiRegister(
+        userData.username, 
+        userData.email, 
+        userData.password, 
+        userData.confirmPassword
+      )
       return { success: true }
     } catch (e) {
       const message = e?.data?.error || e?.message || 'Ошибка регистрации'
@@ -41,21 +47,24 @@ export const useAuth = () => {
     }
   }
 
-  const login = async (email, password) => {
+  const login = async (username, password) => {
     setError(null)
 
-    const validationResult = validation.validateLogin({ email, password })
+    const validationResult = validation.validateLogin({ username, password })
     if (!validationResult.isValid) {
       setError(validationResult.errors)
       return { success: false, errors: validationResult.errors }
     }
 
     try {
-      const result = await apiLogin(email, password)
+      const result = await apiLogin(username, password)
       if (result?.token && result?.user) {
-        // Добавляем токен к объекту пользователя
         const userWithToken = {
           ...result.user,
+          id: result.user.id,
+          username: result.user.username,
+          email: result.user.email,
+          role: result.user.role || 'client',
           token: result.token
         }
         
@@ -69,7 +78,7 @@ export const useAuth = () => {
       setError({ general: message })
       return { success: false, errors: { general: message } }
     } catch (e) {
-      const message = e?.data?.error || e?.message || 'Неверный email или пароль'
+      const message = e?.data?.error || e?.message || 'Неверный логин или пароль'
       setError({ general: message })
       return { success: false, errors: { general: message } }
     }

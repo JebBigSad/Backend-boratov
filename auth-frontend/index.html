@@ -1,23 +1,56 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Система аутентификации и управления данными" />
+    <meta
+      name="description"
+      content="Система аутентификации и управления данными"
+    />
     <meta name="author" content="Your Name" />
-    
+
     <!-- Favicon (опционально) -->
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    
+
     <!-- Open Graph для соцсетей (опционально) -->
     <meta property="og:title" content="Аутентификация" />
-    <meta property="og:description" content="Система аутентификации и управления данными" />
+    <meta
+      property="og:description"
+      content="Система аутентификации и управления данными"
+    />
     <meta property="og:type" content="website" />
-    
+
     <title>Аутентификация | Система управления</title>
-</head>
-<body>
+  </head>
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-</body>
+  </body>
 </html>
+<style>
+  .message {
+    max-width: 70%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+  }
+  .message.my {
+    align-self: flex-end;
+    background: #2563eb;
+    color: white;
+  }
+  .message.other {
+    align-self: flex-start;
+    background: #f3f4f6;
+    color: #1f2937;
+  }
+  .messages-list {
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    overflow-y: auto;
+    flex: 1;
+  }
+</style>

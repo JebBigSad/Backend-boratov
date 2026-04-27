@@ -51,10 +51,10 @@ export const validateRegistration = (data) => {
 export const validateLogin = (data) => {
   const errors = {}
 
-  if (!data.email) {
-    errors.email = 'Email обязателен'
-  } else if (!validateEmail(data.email)) {
-    errors.email = 'Неверный формат email'
+  if (!data.username) {
+    errors.username = 'Имя пользователя обязательно'
+  } else if (!validateUsername(data.username)) {
+    errors.username = 'Имя должно быть от 3 до 20 символов'
   }
 
   if (!data.password) {

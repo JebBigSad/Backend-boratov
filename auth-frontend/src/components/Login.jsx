@@ -3,7 +3,7 @@ import '../styles/auth.css'
 
 function Login({ onLogin, error }) {
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: ''
   })
 
@@ -16,7 +16,7 @@ function Login({ onLogin, error }) {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    onLogin(formData.email, formData.password)
+    onLogin(formData.username, formData.password)
   }
 
   return (
@@ -24,16 +24,16 @@ function Login({ onLogin, error }) {
       <h2 className="auth-title">Вход в аккаунт</h2>
       <form className="auth-form" onSubmit={handleSubmit}>
         <div className="auth-input-group">
-          <label className="auth-label">Email</label>
+          <label className="auth-label">Имя пользователя</label>
           <input
-            type="email"
-            name="email"
-            value={formData.email}
+            type="text"
+            name="username"
+            value={formData.username}
             onChange={handleChange}
-            placeholder="Введите email"
-            className={`auth-input ${error?.email ? 'error' : ''}`}
+            placeholder="Введите имя пользователя"
+            className={`auth-input ${error?.username ? 'error' : ''}`}
           />
-          {error?.email && <small style={{color: '#e53e3e'}}>{error.email}</small>}
+          {error?.username && <small style={{color: '#e53e3e'}}>{error.username}</small>}
         </div>
         <div className="auth-input-group">
           <label className="auth-label">Пароль</label>
